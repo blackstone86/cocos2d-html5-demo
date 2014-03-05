@@ -38,8 +38,9 @@
         // engineDir:'../cocos2d/',
         SingleEngineFile:'lib/Cocos2d-html5-v2.2.2.min.js',
         appFiles:[
-            'src/resource.js',
-            'src/myApp.js'//add your own files in order here
+            'src/resource.js'
+            , 'src/myApp.js' //add your own files in order here
+            , 'src/GameOverScene.js' //add your own files in order here
         ]
     };
 

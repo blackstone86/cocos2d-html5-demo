@@ -23,7 +23,7 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.
  ****************************************************************************/
-var MyLayer = cc.LayerColor.extend({
+ var MyLayer = cc.LayerColor.extend({
     plane: null
 
     , _bullets: null
@@ -43,28 +43,25 @@ var MyLayer = cc.LayerColor.extend({
 
         // 设置Layer的背景，使用RGBA
         this.setColor(cc.c4(126,126,126,126));
- 
+        
+        this.director = cc.Director.getInstance();
+
         // 获得游戏屏幕的尺寸
         var winSize = cc.Director.getInstance().getWinSize();
         // 获取屏幕坐标原点
         var origin = cc.Director.getInstance().getVisibleOrigin();
  
         // 背景循环
-        do {
-            var BG_1 = cc.Sprite.create(s_Background, cc.rect(0,0,480,852)); 
-            BG_1.setAnchorPoint( cc.p( 0, 0 ) );  
-            BG_1.setPosition( cc.p( 0, 0 ) );  
-            this.addChild(BG_1, 0);  
-
-            // 加载background2  
-            // var BG_2 = cc.Sprite.create(s_Background, cc.rect(0,0,480,852)); 
-            // BG_2.setAnchorPoint( cc.p( 0, 0 ) );  
-            // BG_2.setPosition( cc.p( 0, 0 ) );
-            // 这里减2的目的是为了防止图片交界的黑线
-            // this.addChild(BG_2, BG_2.getContentSize().height - 2);  
-            // this.schedule(this.addBullet, 0.2);
-
-        } while( 0 );
+        this.bg_1 = cc.Sprite.create(s_Background, cc.rect(0,0,480,852)); 
+        this.bg_1.setAnchorPoint( cc.p( 0, 0 ) );  
+        this.bg_1.setPosition( cc.p( 0, 0 ) );  
+        this.addChild(this.bg_1, 0);  
+         
+        this.bg_2 = cc.Sprite.create(s_Background, cc.rect(0,0,480,852)); 
+        this.bg_2.setAnchorPoint( cc.p( 0, 0 ) ); 
+        // 这里减2的目的是为了防止图片交界的黑线 
+        this.bg_2.setPosition( cc.p( 0, this.bg_2.getContentSize().height - 2 ) );
+        this.addChild(this.bg_2, 0); 
 
         // 创建一个飞机，游戏中大部分物体都能使用cc.Sprite表示
         // 飞机的图案按照cc.rect(x,y,width,height）从图片中截取
@@ -78,6 +75,9 @@ var MyLayer = cc.LayerColor.extend({
 
         this.addChild(this.plane, 0);
 
+        // 设置定时器，定时器每隔0.8秒调用一次bgMove方法
+        this.schedule(this.bgMove, 0.01 / 60);
+
         // 设置定时器，定时器每隔0.2秒调用一次addBullet方法
         this.schedule(this.addBullet, 0.2);
 
@@ -88,8 +88,18 @@ var MyLayer = cc.LayerColor.extend({
         this.schedule(this.updateGame);
 
         // 将层设置为可触摸
-        this.setTouchEnabled(true);        
- 
+        this.setTouchEnabled(true);  
+
+        // 场景切换
+        var FadeTRTransition = function (t, s) {
+            return cc.TransitionFadeTR.create(t, s);
+        };                    
+        this.arrayOfTransitionsTest = [
+            { title: "FadeTRTransition", transitionFunc: function (t, s) {
+                return new FadeTRTransition(t, s);
+            }}
+        ];       
+
         return true;
     }
 
@@ -103,13 +113,15 @@ var MyLayer = cc.LayerColor.extend({
 
     , TAG_BULLET: 6
 
+    , isGameOver: false
+
     , onDoubleTouches: function( touches ){
         this.rotateDeg = this.rotateDeg + 45 >= 360 ? 0 : this.rotateDeg + 45;  
         rotateTo = cc.RotateTo.create(2, this.rotateDeg);
         this.plane.runAction(rotateTo);
     }
 
-    ,onTouchesMoved: function( touches ){
+    , onTouchesMoved: function( touches ){
         var touch = touches[0];
         var location = touch.getLocation();
         if ( this.onClickFlag ) {
@@ -117,7 +129,7 @@ var MyLayer = cc.LayerColor.extend({
         }
     }
  
-    ,onTouchesEnded: function( touches ){
+    , onTouchesEnded: function( touches ){
         this.onClickFlag = false;
     }
  
@@ -138,6 +150,15 @@ var MyLayer = cc.LayerColor.extend({
             }
             this.prevMS = 0;
         }
+    }
+
+    , bgMove: function(){
+        this.bg_1.setPositionY( this.bg_1.getPositionY() - 2 );
+        this.bg_2.setPositionY( this.bg_1.getPositionY() + this.bg_1.getContentSize().height-2 );
+        // 要注意因为背景图高度是842，所以每次减去2最后可以到达0，假如背景高度是841，那么这个条件永远达不到，滚动失败 
+        if ( this.bg_2.getPositionY() === 0 ) {  
+            this.bg_1.setPositionY(0);  
+        }  
     }
 
     , addBullet: function(){
@@ -172,25 +193,7 @@ var MyLayer = cc.LayerColor.extend({
  
         this._bullets.push(bullet);
         this.addChild(bullet, 0);
-    }
-     
-    , spriteMoveFinished: function( sprite ){
-        // 将元素移除出Layer
-        this.removeChild(sprite, true);
-        if( sprite.getTag() == this.TAG_ENEMY ){
-            // 把目标从数组中移除
-            var index = this._targets.indexOf(sprite);
-            if (index > -1) {
-                this._targets.splice(index, 1);
-            }
-        } else if( sprite.getTag() == this.TAG_BULLET ){
-            // 把子弹从数组中移除
-            var index = this._bullets.indexOf(sprite);
-            if (index > -1) {
-                this._bullets.splice(index, 1);
-            }
-        }        
-    }  
+    } 
 
     , addTarget: function(){
         var target = cc.Sprite.create(s_Sprites, cc.rect(2,101,69,88));
@@ -223,17 +226,43 @@ var MyLayer = cc.LayerColor.extend({
         this._targets.push(target);
     }   
 
+    // 转换场景
+    , changeScene: function(){
+        // 显示GameOver 
+        this.isGameOver = true;
+        var gameOverScene = GameOverScene.create();
+        var actualIdx = Math.floor( Math.random() * this.arrayOfTransitionsTest.length );
+        var scene = this.arrayOfTransitionsTest[ actualIdx ].transitionFunc(1.5, gameOverScene);                 
+        this.director.replaceScene(scene);
+    }
+
     , updateGame: function(){
+        if( this.isGameOver ) return;
+
         var targets2Delete = [];
  
         var i ;
+
         //遍历屏幕上的每个敌机
         for( i in this._targets ){
-            //console.log("targetIterator");
+            // console.log("targetIterator");
             var target = this._targets[i];
             // 获得敌机的碰撞矩形
             var targetRect = target.getBoundingBox();
- 
+            // 获得英雄机的碰撞矩形
+            var planeRect = this.plane.getBoundingBox();
+            planeRect.width = 39;
+            planeRect.height = 52; 
+            planeRect.x += 30;
+            planeRect.y += 30;
+
+            // 假如碰到英雄机，就显示GameOver  
+            if ( cc.rectIntersectsRect( planeRect, targetRect ) ) { // 判断两个矩形是否碰撞
+                // 显示GameOver 
+                this.changeScene();
+                return; 
+            }            
+
             var bullets2Delete = [];
             // 对于每个敌机，遍历每个屏幕上的子弹，判断是否碰撞
             for (i in this._bullets) {
@@ -250,7 +279,7 @@ var MyLayer = cc.LayerColor.extend({
                 targets2Delete.push(target);
             }
  
-            //删除发生碰撞的每个子弹
+            // 删除发生碰撞的每个子弹
             for (i in bullets2Delete) {
                 var bullet = bullets2Delete;
                 var index = this._bullets.indexOf(bullet);
@@ -276,6 +305,24 @@ var MyLayer = cc.LayerColor.extend({
  
         targets2Delete = null;
     }  
+
+    , spriteMoveFinished: function( sprite ){
+        // 将元素移除出Layer
+        this.removeChild(sprite, true);
+        if( sprite.getTag() == this.TAG_ENEMY ){
+            // 把目标从数组中移除
+            var index = this._targets.indexOf(sprite);
+            if (index > -1) {
+                this._targets.splice(index, 1);
+            }
+        } else if( sprite.getTag() == this.TAG_BULLET ){
+            // 把子弹从数组中移除
+            var index = this._bullets.indexOf(sprite);
+            if (index > -1) {
+                this._bullets.splice(index, 1);
+            }
+        }        
+    }     
 });
 
 var MyScene = cc.Scene.extend({
@@ -284,5 +331,5 @@ var MyScene = cc.Scene.extend({
         var layer = new MyLayer();
         this.addChild(layer);
         layer.init();
-    }
+    }  
 });
