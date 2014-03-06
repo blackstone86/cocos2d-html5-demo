@@ -93,13 +93,22 @@
         // 场景切换
         var FadeTRTransition = function (t, s) {
             return cc.TransitionFadeTR.create(t, s);
-        };                    
+        };    
+        var FadeTransition = function (t, s) {
+            return cc.TransitionFade.create(t, s);
+        };        
         this.arrayOfTransitionsTest = [
-            { title: "FadeTRTransition", transitionFunc: function (t, s) {
-                return new FadeTRTransition(t, s);
+            {title:"FadeTransition", transitionFunc:function (t, s) {
+                return new FadeTransition(t, s);
             }}
-        ];       
-
+        ];    
+        if( 'opengl' in sys.capabilities ){   
+            this.arrayOfTransitionsTest = [
+                { title: "FadeTRTransition", transitionFunc: function (t, s) {
+                    return new FadeTRTransition(t, s);
+                }}
+            ];         
+        }
         return true;
     }
 
